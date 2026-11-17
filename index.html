@@ -1777,6 +1777,18 @@ function impComparer(){const sc=scen();UI.cmp=UI.cmp||["reel","abr"];const sel=U
    <p class="tiny muted">« Le mieux » se base sur les années suivantes. Au réel, la 1re année est souvent sans impôt grâce aux frais du prêt ; ensuite, si les recettes dépassent les dépenses et l'amortissement (${eur(withScen(sc,()=>{const P=projection();return P.aBati+P.aMob+P.aTrav}))} par an), le reste est imposé avec ton salaire, à ta tranche.</p></section>
    ${(()=>{const ok=sel.filter(k=>d[k].ok);const mx=Math.max(...ok.map(k=>Math.abs(d[k].pocheS)),1);return `<section class="card"><h3>Il te reste / mois, années suivantes</h3><div class="stack" style="gap:10px">${ok.map(k=>{const c=CMP.find(x=>x[0]===k);const v=d[k].pocheS;const col=k.startsWith("ab")?VIZ.airbnb:VIZ[k]||VIZ.reel;return `<div><div class="row between small"><span>${c[1]} · ${c[2]}</span><b class="${v>=0?"pos":"neg"}">${eur(v)}</b></div><div style="height:10px;border-radius:5px;background:rgba(255,255,255,.05);margin-top:4px;overflow:hidden"><div style="height:100%;width:${Math.abs(v)/mx*100}%;background:${v<0?"#F2928A":"#74D3A0"};border-radius:5px"></div></div></div>`}).join("")}</div><p class="tiny muted">Rouge : ce que tu sors de ta poche chaque mois. Vert : ce que tu gagnes.</p></section>`})()}`}
   ${anyAb?`<section class="card"><h3>Réglages Airbnb</h3>${AB_FIELDS.map(f=>abField(f,D.c.a[f[0]],D.c.a)).join("")}</section>`:""}`}
+
+function pvTax(pv,n){if(pv<=0)return {ir:0,ps:0,t:0};const ir=pv*(1-abatIR(n))*REF.irPV,ps=pv*(1-abatPS(n))*REF.psPV;return {ir,ps,t:ir+ps}}
+function reventeCard(sc){UI.rv=UI.rv||{};const n=UI.rv.n??N(sc.revente);const prix=N(sc.prix),frais=N(sc.notaire);const vente=UI.rv.v??Math.round(prix*1.15/1000)*1000;
+  const used=withScen({...sc,revente:n},()=>projection().usedCum);const base=prix+frais;
+  const pvM=Math.max(0,vente-base),pvR=Math.max(0,vente-(base-used));const tM=pvTax(pvM,n),tR=pvTax(pvR,n);
+  const fld=(k,l,v,min,max,step,fmt)=>`<div class="field"><div class="row between"><label>${l}</label><b class="small" id="rvv_${k}">${fmt(v)}</b></div><input type="range" min="${min}" max="${max}" step="${step}" value="${v}" data-rv="${k}" style="padding:0;min-height:30px;accent-color:#D9B56E;background:none;border:0;box-shadow:none"></div>`;
+  const rows=(pv,t,extra)=>`${kvRows([["Plus-value",eur(pv)+(extra?` <span class="tiny muted">(dont ${eur(extra)} d'amortissement repris)</span>`:"")],["Abattement durée (impôt / prél. sociaux)",Math.round(abatIR(n)*100)+" % / "+(Math.round(abatPS(n)*1000)/10).toString().replace(".",",")+" %"],["Impôt sur le revenu (19 %)",eur(t.ir)],["Prélèvements sociaux (17,2 %)",eur(t.ps)]])}<div class="row between"><b>Total à payer à la vente</b><b>${eur(t.t)}</b></div>`;
+  return `<section class="card"><h2>Et si je revends ?</h2><p class="small muted">L'impôt sur la plus-value : la différence entre le prix de vente et le prix d'achat (frais de notaire compris).</p>
+  ${fld("v","Prix de revente",vente,80000,300000,1000,eur)}${fld("n","Revente dans",n,1,30,1,x=>x+" ans")}
+  ${kvRows([["Prix d'achat + frais de notaire",eur(base)],["Amortissement déduit au réel pendant "+n+" ans",eur(used)]])}
+  <div class="stack" style="gap:12px"><div class="card flat" style="padding:12px;gap:8px"><p class="eyebrow">Micro-BIC</p>${rows(pvM,tM,0)}</div><div class="card flat" style="padding:12px;gap:8px"><p class="eyebrow">Réel</p>${rows(pvR,tR,pvR-pvM)}</div></div>
+  <p class="tiny muted">Au réel, l'amortissement déduit pendant la location est retiré du prix d'achat : la plus-value est donc plus grosse. Les abattements commencent après 5 ans de détention : plus d'impôt sur le revenu après 22 ans, plus de prélèvements sociaux après 30 ans. Les frais d'agence de la vente se déduisent aussi. Si la maison redevient sa résidence principale au moment de la vente, la plus-value est exonérée.</p></section>`}
 function impChoisir(){
   const sc=scen();const o=options(sc,!!UI.plf);const reg=S.fiscal.regime;
   const max=Math.max(...o.opts.map(x=>x.total),1);
@@ -1789,6 +1801,7 @@ function impChoisir(){
   <details class="why"><summary>Plus de réglages (achat, crédit, travaux)</summary><div>${SC_FIELDS.slice(4).map(f=>scField(f,sc)).join("")}</div></details></section>
   ${trancheCard(o)}
   ${chartCard(sc)}
+  ${reventeCard(sc)}
   <div class="subtabs"><button aria-pressed="${!UI.plf}" data-act="plf" data-arg="0">Loi actuelle</button><button aria-pressed="${!!UI.plf}" data-act="plf" data-arg="1">Si le budget 2027 passe</button></div>
   ${(()=>{const a0=options(sc,false),a1=options(sc,true);const r0=a0.opts.find(x=>x.k==="reel"),r1=a1.opts.find(x=>x.k==="reel");const P0=withScen(sc,()=>projection()),P1=withScen(sc,()=>projection({plf:true}));
     const first=P1.rows.find(r=>r.taxR>1);const yrs=[5,10,15,20].filter(y=>P1.rows[y-1]&&(!first||y>=first.y));
@@ -1856,7 +1869,7 @@ function impSuivi(){
 function vImpots(){
   if(!["choisir","comparer","comptable","suivi","bases","assistant"].includes(UI.sub.impots))UI.sub.impots="choisir";
   const body={choisir:impChoisir,comparer:impComparer,comptable:impComptableV2,suivi:impSuivi,bases:impComprendre,assistant:impAssistant}[UI.sub.impots];
-  return `<h1>Impôts</h1>${subtabs("impots",[["choisir","Choisir"],["comparer","Comparer"],["comptable","Mon comptable"],["suivi","Suivi"],["bases","Comprendre"],["assistant","Une question ?"]])}${body()}`;
+  return `<h1>Impôts</h1>${subtabs("impots",[["choisir","Choisir"],["comparer","Comparer"],["comptable","Mon comptable"],["suivi","Suivi"],["bases","Comprendre"],...(window.SB?[]:[["assistant","Une question ?"]])])}${body()}`;
 }
 
 /* ---------- Envoi au comptable ---------- */
@@ -2178,9 +2191,9 @@ function refreshSheet(){if(!UI.sheet)return;const panel=$("#sheetRoot .panel");c
 
 /* ====================== Événements ====================== */
 function readVal(el){if(el.dataset.num!==undefined)return el.value===""?"":N(el.value);if(el.tagName==="SELECT"&&(el.value==="true"||el.value==="false"))return el.value==="true";return el.value}
-document.addEventListener("input",e=>{const ab=e.target.closest("[data-ab]");if(ab){UI.ab=UI.ab||{};UI.ab[ab.dataset.ab]=N(ab.value);const a=abVals();AB_FIELDS.forEach(([k])=>{const lab=document.getElementById("abv_"+k);if(lab)lab.textContent=abLabel(k,a[k],a)});return}const r=e.target.closest("[data-sc]");if(r){UI.scen=UI.scen||{};UI.scen[r.dataset.sc]=N(r.value);const u=r.dataset.u;const lab=document.getElementById("scv_"+r.dataset.sc);if(lab)lab.textContent=(u==="%"?String(r.value).replace(".",","):u.startsWith("€")?eur(N(r.value)):r.value+" "+u)+(u.includes("/")?" "+u.slice(1):"");return}
+document.addEventListener("input",e=>{const rv=e.target.closest("[data-rv]");if(rv){const l=document.getElementById("rvv_"+rv.dataset.rv);if(l)l.textContent=rv.dataset.rv==="v"?eur(N(rv.value)):rv.value+" ans";return}const ab=e.target.closest("[data-ab]");if(ab){UI.ab=UI.ab||{};UI.ab[ab.dataset.ab]=N(ab.value);const a=abVals();AB_FIELDS.forEach(([k])=>{const lab=document.getElementById("abv_"+k);if(lab)lab.textContent=abLabel(k,a[k],a)});return}const r=e.target.closest("[data-sc]");if(r){UI.scen=UI.scen||{};UI.scen[r.dataset.sc]=N(r.value);const u=r.dataset.u;const lab=document.getElementById("scv_"+r.dataset.sc);if(lab)lab.textContent=(u==="%"?String(r.value).replace(".",","):u.startsWith("€")?eur(N(r.value)):r.value+" "+u)+(u.includes("/")?" "+u.slice(1):"");return}
   const el=e.target.closest("[data-bind]");if(!el)return;const p=el.dataset.bind;if(p.startsWith("_"))return;setPath(p,readVal(el));touch(p.split(".")[0])});
-document.addEventListener("change",e=>{if(e.target.closest("[data-sc]")||e.target.closest("[data-ab]")){const y=window.scrollY;render();window.scrollTo(0,y);return}const us=e.target.closest("[data-uisel]");if(us){UI[us.dataset.uisel]=us.value;const y=window.scrollY;render();window.scrollTo(0,y);return}
+document.addEventListener("change",e=>{const rv=e.target.closest("[data-rv]");if(rv){UI.rv=UI.rv||{};UI.rv[rv.dataset.rv]=N(rv.value);const y=window.scrollY;render();window.scrollTo(0,y);return}if(e.target.closest("[data-sc]")||e.target.closest("[data-ab]")){const y=window.scrollY;render();window.scrollTo(0,y);return}const us=e.target.closest("[data-uisel]");if(us){UI[us.dataset.uisel]=us.value;const y=window.scrollY;render();window.scrollTo(0,y);return}
   if(e.target.id==="f__depFin"){UI.dep=UI.dep||{};UI.dep.fin=e.target.value;return}
 const el=e.target.closest("[data-bind]");if(!el)return;const p=el.dataset.bind;if(p.startsWith("_"))return;setPath(p,readVal(el));touch(p.split(".")[0]);
   if(p.startsWith("profil."))applyTheme();
