@@ -469,6 +469,11 @@ function buildDemo(){
     {id:"c2",nom:"Karim Benali",tel:"06 55 44 33 22",email:"",situation:"cdiessai",revenus:2300,garant:"physique",revenusGarant:3100,feeling:4,pieces:{id:true,dom:true,pro:true,paie:true,imp:false},docs:[photoPH("Pièce d'identité",210),photoPH("Contrat",160)],notes:"Technicien sur la zone portuaire, arrivée récente.",employeur:"Maintenance industrielle du port",anciennete:2,essaiFin:"2025-12-15",motif:"Nouvel emploi dans la région",entree:"2025-11-15",occupants:2,duree:"moyen",logement:"heberge",quittancesAJour:"",refBailleur:"non",ponctuel:true,soigneux:false,interesse:true,statut:"dossier",date:"2025-10-10",analyse:{resume:"Technicien de maintenance en CDI, période d'essai jusqu'à mi-décembre. Garant (père) avec 3 100 € de revenus.",points:["CDI encore en période d'essai","Avis d'imposition non fourni"],date:"2025-10-11"}},
     {id:"c3",nom:"Julie Roux",tel:"07 12 34 56 78",email:"",situation:"cdd",revenus:1700,garant:"aucun",revenusGarant:"",feeling:3,pieces:{id:true,pro:true,paie:true},docs:[photoPH("Fiches de paie",90)],notes:"Sympathique mais budget très serré.",employeur:"Boutique de prêt-à-porter",anciennete:5,motif:"Séparation",entree:"2025-11-01",occupants:1,duree:"court",logement:"locataire",quittancesAJour:"non",refBailleur:"neutre",ponctuel:false,interesse:true,statut:"refuse",date:"2026-10-20",analyse:{resume:"Vendeuse en CDD jusqu'en mars, revenus d'environ 1 700 € net, sans garant.",points:["Revenus inférieurs à 3 fois le loyer","CDD qui se termine dans 5 mois","Justificatif de domicile manquant"],date:"2025-10-07"}},
   ];
+  {const c1=D.candidats.items[0],c2=D.candidats.items[1];c1.visa="V123456789";c1.statut="retenu";
+   c2.gar={prenom:"Nadia",nom:"Benali",naissance:"1970-03-12",lieuNaissance:"Marseille",adresse:"8 avenue du Port, 13500 Martigues",tel:"06 77 88 99 00",email:"nadia.benali@exemple.fr",lien:"mère"};
+   c2.garDocs=[photoPH("Pièce d'identité garant",230),photoPH("Bulletins de salaire",95),photoPH("Avis d'impôt garant",25)];c2.statut="dossier";
+   c2.employeur=c2.employeur||"Maintenance industrielle du port";c2.motif=c2.motif||"Mutation sur la zone portuaire";c2.occupants=1;c2.duree="long";c2.logement="locataire";c2.quittancesAJour="oui";c2.ponctuel=true;c2.interesse=true;
+   D.candidats.items[2].statut="visite";}
   Object.assign(D.bail,{locPrenom:"Léa",locNom:"Martin",locNaissance:"1996-04-18",locEmail:"lea.martin@exemple.fr",locTel:"06 11 22 33 44",debut:"2025-11-01",loyerHC:978,charges:40,depot:978,irlTrim:"2025 T3",irlVal:145.77,signe:true});
   D.loyers={paiements:{},envois:{}};
   let d=new Date(2025,10,1);const end=new Date();while(d<=end){const k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");const late=k==="2026-08";D.loyers.paiements[k]={statut:"paye",date:`${k}-${late?"12":"0"+(3+(d.getMonth()%3))}`,montant:1018};D.loyers.envois[k]=[{date:`${k}-${late?"12":"0"+(4+(d.getMonth()%3))}`,a:"lea.martin@exemple.fr"}];d=new Date(d.getFullYear(),d.getMonth()+1,1)}
@@ -492,6 +497,10 @@ function buildDemo(){
   D.profil.signature=sB;
   D.bail.signatures={bailleur:{img:sB,date:"2025-10-28T18:30"},locataire:{img:sL,date:"2025-10-28T18:31"}};
   D.edl.entree.signatures={bailleur:{img:sB,date:"2025-11-01T10:15"},locataire:{img:sL,date:"2025-11-01T10:16"}};
+  D.bail.garantie="visale";D.bail.visa="V123456789";D.bail.occupants=1;
+  D.points={ok:{elec:"2025-10-20",cpt:"2025-10-28",dtf:"2025-10-25",assur:"2025-11-01"}};
+  D.couts={hist:[{k:"pno",label:"Assurance maison",avant:240,apres:168,date:"2026-01-10",note:"Nouvel assureur",unite:"an",le:"2026-01-10"},{k:"loyer",label:"Loyer",avant:960,apres:978,date:"2025-11-01",note:"Révision IRL",unite:"mois",le:"2025-11-01"}]};
+  D.bien.pdl="12345678901234";D.bien.compteurEau="A19-554821";D.bien.serviceEau="Service des eaux de la Métropole";D.bien.internet="Fibre disponible";
   D.meta.exemple=false;
   return D;
 }
@@ -811,6 +820,7 @@ function cautionHTML(){const b=S.bail,bi=S.bien,pr=S.profil,g=b.caution||{};cons
 <p>« Je reconnais avoir pleinement connaissance de la nature et de l'étendue de mon engagement : en me portant caution solidaire de ${L(((b.locPrenom||"")+" "+(b.locNom||"")).trim())}, je m'engage à payer au bailleur, à la place du locataire et sans qu'il ait à le poursuivre d'abord, les sommes dues au titre du bail, dans la limite de ${eur(plafond)} et jusqu'au ${fin}. J'ai reçu un exemplaire du contrat de location. »</p>
 <p style="margin-top:20px">Fait à ${esc(bi.ville)}, le ……………, en trois exemplaires (caution, bailleur, locataire).</p>
 <table style="width:100%;margin-top:14px;font-family:inherit"><tr><td style="border:0;width:50%;vertical-align:top">La caution<br><span style="font-size:.85em">(signature précédée de « lu et approuvé »)</span><br><br><br></td><td style="border:0;vertical-align:top">Le bailleur<br><span style="font-size:.85em">(signature)</span><br><br><br></td></tr></table>`}
+function askBlock(c){return `<ol class="small" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${DOSSIER_LISTE.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>   <p class="eyebrow" style="margin-top:4px">Et lui poser</p>   <ul class="small" style="margin:0;padding-left:18px">${QUESTIONS.map(q=>`<li>${esc(q[1])}</li>`).join("")}</ul>   <button class="btn sm" data-act="copyDossier" data-arg="${c.id}">Copier le message à lui envoyer</button>`}
 function candSheet(c){
   const i=S.candidats.items.indexOf(c);const p="candidats.items."+i;const sc=scoreCand(c);
   if(c._new)return `<div class="row between"><h2>Nouveau candidat</h2><button class="btn sm ghost" data-act="closeSheet">Annuler</button></div>
@@ -819,11 +829,13 @@ function candSheet(c){
    <button class="btn block" data-act="candCreer" data-arg="${c.id}">Enregistrer</button>`;
   const hasData=!!(c.analyse||N(c.revenus));
   return `<div class="row between"><div><h2>${esc(c.nom||"Sans nom")}</h2><p class="tiny muted">${[c.tel,c.email].filter(Boolean).map(esc).join(" · ")}</p></div><button class="btn sm ghost" data-act="closeSheet">Fermer</button></div>
-  <section class="card gold" style="padding:16px;gap:10px"><p class="eyebrow">À lui demander</p>
-   <ol class="small" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${DOSSIER_LISTE.map(x=>`<li>${esc(x)}</li>`).join("")}</ol>
-   <p class="eyebrow" style="margin-top:4px">Et lui poser</p>
-   <ul class="small" style="margin:0;padding-left:18px">${QUESTIONS.map(q=>`<li>${esc(q[1])}</li>`).join("")}</ul>
-   <button class="btn sm" data-act="copyDossier" data-arg="${c.id}">Copier le message à lui envoyer</button></section>
+  ${hasData?`<section class="card gold" style="padding:16px;gap:10px"><p class="eyebrow">Mon avis sur ce dossier</p>
+   ${hasData?`<div class="row" style="gap:14px"><div class="score ${sc.cls}">${sc.s}</div><div style="flex:1"><h3>${sc.verdict}</h3><p class="small muted">Note sur 100 : revenus, emploi, garantie, dossier, parcours, entretien.</p></div></div>
+   <div class="stack" style="gap:8px">${sc.cats.map(([l,x,m])=>`<div><div class="row between small"><span>${l}</span><span class="muted">${Math.round(x)}/${m}</span></div>${bar(x,m)}</div>`).join("")}</div>
+   ${sc.plus.length?`<div><p class="eyebrow" style="color:var(--good)">Points forts</p><ul class="small" style="margin:6px 0 0;padding-left:18px">${sc.plus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}
+   ${sc.moins.length?`<div><p class="eyebrow" style="color:var(--bad)">Points de vigilance</p><ul class="small" style="margin:6px 0 0;padding-left:18px">${sc.moins.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`
+   :`<p class="small muted">La note s'affichera dès que tu auras ajouté ses documents ou son salaire.</p>`}</section>`:""}
+  ${hasData?`<details class="why"><summary>À lui demander</summary><div>${askBlock(c)}</div></details>`:`<section class="card gold" style="padding:16px;gap:10px"><p class="eyebrow">À lui demander</p>${askBlock(c)}</section>`}
   ${avisBlock(c)}
   ${f("Où en est-il ?",p+".statut",{type:"select",options:Object.entries(STATUTS).map(([k,v])=>[k,v[0]])})}
   <details class="why" open><summary>Son dossier (documents)</summary><div>
@@ -845,12 +857,6 @@ function candSheet(c){
    ${c.garant==="physique"?"":`<p class="tiny muted">Choisis « Garant (personne) » pour ajouter son garant et générer l'acte de cautionnement.</p>`}</div></details>
   ${c.garant==="physique"?garantBlock(c,p):""}
   <details class="why"><summary>Contact et notes</summary><div><div class="grid2">${f("Nom et prénom",p+".nom")}${f("Téléphone",p+".tel",{type:"tel"})}${f("E-mail",p+".email",{type:"email",span:true})}</div>${f("Notes",p+".notes",{type:"textarea",rows:2})}</div></details>
-  <details class="why" ${hasData?"open":""}><summary>Mon avis sur ce dossier</summary><div>
-   ${hasData?`<div class="row" style="gap:14px"><div class="score ${sc.cls}">${sc.s}</div><div style="flex:1"><h3>${sc.verdict}</h3><p class="small muted">Note sur 100 : revenus, emploi, garantie, dossier, parcours, entretien.</p></div></div>
-   <div class="stack" style="gap:8px">${sc.cats.map(([l,x,m])=>`<div><div class="row between small"><span>${l}</span><span class="muted">${Math.round(x)}/${m}</span></div>${bar(x,m)}</div>`).join("")}</div>
-   ${sc.plus.length?`<div><p class="eyebrow" style="color:var(--good)">Points forts</p><ul class="small" style="margin:6px 0 0;padding-left:18px">${sc.plus.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}
-   ${sc.moins.length?`<div><p class="eyebrow" style="color:var(--bad)">Points de vigilance</p><ul class="small" style="margin:6px 0 0;padding-left:18px">${sc.moins.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:""}`
-   :`<p class="small muted">La note s'affichera dès que tu auras ajouté ses documents ou son salaire.</p>`}</div></details>
   <button class="btn block" data-act="candSave">Enregistrer</button>
   <div class="row between"><button class="btn sm danger" data-act="delCand" data-arg="${c.id}">Supprimer</button>${c.statut==="retenu"?`<button class="btn" data-act="candToBail" data-arg="${c.id}">En faire mon locataire</button>`:`<button class="btn sm soft" data-act="candStatut" data-id="${c.id}" data-arg="retenu">Je le retiens</button>`}</div>`;
 }
@@ -2128,6 +2134,7 @@ function vProfil(){
   const p="profil.";
   return `<h1>Ma fiche</h1><section class="card"><h2>Moi</h2><div class="grid2">${f("Prénom",p+"prenom")}${f("Nom",p+"nom")}${f("Date de naissance",p+"naissance",{type:"date"})}${f("Téléphone",p+"tel",{type:"tel"})}${f("E-mail",p+"email",{type:"email"})}${f("Adresse (où tu habites)",p+"adresse")}${f("Employeur",p+"employeur")}${f("Contrat",p+"contrat",{type:"select",options:["CDI","CDD","Fonctionnaire","Indépendant","Autre"]})}${f("IBAN (pour le bail et les quittances)",p+"iban",{span:true})}</div>
   <p class="small muted">Ces informations remplissent le bail, les quittances et les états des lieux.</p></section>
+  <section class="card gold"><div class="row between"><div><h2>Version démo</h2><p class="small muted">Une maison et des locataires fictifs, avec tout rempli : candidats et garants, bail signé, états des lieux, loyers, quittances, journal. Rien n'est enregistré, tes vraies données ne bougent pas.</p></div></div><button class="btn block" data-act="demoOn">Voir la démo</button></section>
   <section class="card"><div class="row between"><div><h2>Mise en route</h2><p class="small muted">${Math.round(PARCOURS.filter(etapeOk).length/PARCOURS.length*100)} % terminé</p></div><a class="btn soft" href="#demarrage">Ouvrir</a></div></section>
   <section class="card"><div class="row between"><h2>Ma signature</h2>${S.profil.signature&&!UI.redoProfilSig?`<button class="btn sm ghost" data-act="redoProfilSig">Refaire</button>`:`<button class="btn sm ghost" data-act="clearPad" data-arg="padProfil">Effacer</button>`}</div>
   <p class="small muted">Elle est ajoutée automatiquement sur tes quittances, et pré-remplie quand tu signes un bail ou un état des lieux.</p>
