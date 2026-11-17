@@ -283,20 +283,26 @@ const css=`#gate{position:fixed;inset:0;z-index:200;background:radial-gradient(9
 #gate button{padding:14px 18px;border-radius:999px;border:0;background:linear-gradient(135deg,#F1DCA6,#D9B56E 45%,#A9823C);color:#1A1408;font:inherit;font-weight:800;font-size:1rem;cursor:pointer}
 #gate .msg{min-height:1.4em;color:#D9B56E}`;
 function gate(html){let g=document.getElementById("gate");if(!g){const st=document.createElement("style");st.textContent=css;document.head.appendChild(st);g=document.createElement("div");g.id="gate";document.body.appendChild(g)}g.innerHTML=`<div class="box"><img src="icon-512.png" alt=""><h1>Immo<i>Coco</i></h1>${html}</div>`;return g}
-function loginForm(msg){const g=gate(`<p>Entre ton adresse e-mail : tu reçois un lien pour te connecter, sans mot de passe.</p><input id="gEmail" type="email" autocomplete="email" placeholder="ton@email.fr" value="${localStorage.getItem("ic_email")||""}"><button id="gBtn">Recevoir le lien</button><p class="msg" id="gMsg">${msg||""}</p>`);
-  g.querySelector("#gBtn").onclick=async()=>{const em=g.querySelector("#gEmail").value.trim();if(!em)return;localStorage.setItem("ic_email",em);const m=g.querySelector("#gMsg");m.textContent="Envoi…";
-    const {error}=await sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:true}});
-    m.textContent=error?("Erreur : "+error.message):"C'est envoyé ! Ouvre le lien reçu par e-mail sur ce téléphone."}}
+function loginForm(msg){const em0=localStorage.getItem("ic_email")||"";
+  const g=gate(`<p>Connecte-toi avec ton e-mail et ton mot de passe.</p><input id="gEmail" type="email" autocomplete="username" placeholder="ton@email.fr" value="${em0}"><input id="gPass" type="password" autocomplete="current-password" placeholder="Mot de passe"><input id="gPass2" type="password" autocomplete="new-password" placeholder="Retape le mot de passe" style="display:none"><button id="gBtn">Se connecter</button><p class="msg" id="gMsg">${msg||""}</p><p style="font-size:.8rem">Aucun e-mail n'est envoyé : la première fois, tu choisis simplement ton mot de passe.</p>`);
+  const E=g.querySelector("#gEmail"),P=g.querySelector("#gPass"),P2=g.querySelector("#gPass2"),B=g.querySelector("#gBtn"),M=g.querySelector("#gMsg");let first=false;
+  const check=async()=>{const em=E.value.trim();if(!/@/.test(em))return;try{const {data}=await sb.rpc("needs_password",{p_email:em});first=!!data;P2.style.display=first?"":"none";P.autocomplete=first?"new-password":"current-password";P.placeholder=first?"Choisis ton mot de passe (8 caractères min.)":"Mot de passe";B.textContent=first?"Créer mon mot de passe":"Se connecter";M.textContent=first?"Première connexion : choisis ton mot de passe.":""}catch(_){}};
+  E.addEventListener("change",check);E.addEventListener("blur",check);if(em0)check();
+  const go=async()=>{const em=E.value.trim(),pw=P.value;if(!em||!pw){M.textContent="Remplis l'e-mail et le mot de passe.";return}localStorage.setItem("ic_email",em);
+    if(first){if(pw.length<8){M.textContent="8 caractères minimum.";return}if(pw!==P2.value){M.textContent="Les deux mots de passe sont différents.";return}
+      M.textContent="Création…";const {data,error}=await sb.rpc("set_first_password",{p_email:em,p_password:pw});if(error||!data){M.textContent=error?error.message:"Cette adresse n'a pas accès à l'appli.";return}}
+    M.textContent="Connexion…";const {error}=await sb.auth.signInWithPassword({email:em,password:pw});if(error){M.textContent=/Invalid login/i.test(error.message)?"E-mail ou mot de passe incorrect.":"Erreur : "+error.message}};
+  B.onclick=go;P.addEventListener("keydown",e=>{if(e.key==="Enter"&&!first)go()});P2.addEventListener("keydown",e=>{if(e.key==="Enter")go()})}
 async function afterLogin(){
   const {data,error}=await sb.from("allowed_users").select("email").limit(1);
-  if(error||!data||!data.length){gate(`<p>Ce compte n'a pas accès à l'appli.</p><button id="gOut">Changer d'adresse</button>`).querySelector("#gOut").onclick=async()=>{await sb.auth.signOut();loginForm()};return}
+  if(error||!data||!data.length){gate(`<p>Ce compte n'a pas accès à l'appli.</p><button id="gOut">Changer de compte</button>`).querySelector("#gOut").onclick=async()=>{await sb.auth.signOut();loginForm()};return}
   await refreshUrls();const g=document.getElementById("gate");if(g)g.remove();ready()}
 async function refreshUrls(){try{let all=[],off=0;for(;;){const {data}=await sb.storage.from("docs").list("",{limit:1000,offset:off});if(!data||!data.length)break;all=all.concat(data);if(data.length<1000)break;off+=1000}
   const names=all.map(o=>o.name).filter(n=>n&&!n.startsWith("."));if(!names.length)return;
   const {data:su}=await sb.storage.from("docs").createSignedUrls(names,60*60*24*7);(su||[]).forEach(x=>{if(x.signedUrl)window.SB_URLS[x.path]=x.signedUrl})}catch(e){}}
 window.SB_refreshUrls=refreshUrls;
 sb.auth.onAuthStateChange((ev,session)=>{if(ev==="SIGNED_IN"&&session&&!window.__icIn){window.__icIn=1;afterLogin()}});
-sb.auth.getSession().then(({data})=>{if(data.session){if(!window.__icIn){window.__icIn=1;afterLogin()}}else if(!/access_token=/.test(location.hash))loginForm()});
+sb.auth.getSession().then(({data})=>{if(data.session){if(!window.__icIn){window.__icIn=1;afterLogin()}}else loginForm()});
 const db={collection(){return{async get(){const {data,error}=await sb.from("app_docs").select("id,data");if(error)throw error;return{docs:(data||[]).map(r=>({id:r.id,exists:true,data:()=>r.data}))}}}},
   doc(path){const id=path.split("/").pop();return{async set(obj){const {error}=await sb.from("app_docs").upsert({id,data:obj,updated_at:new Date().toISOString()});if(error)throw error}}}};
 const assets={async upload(file){const id=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()).replace(/-/g,"");
