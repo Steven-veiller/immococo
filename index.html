@@ -419,6 +419,7 @@ const DEF = {
   loyers:{paiements:{},envois:{},relances:{}},
   entretien:{items:[]},
   fiscal:{revenuImposable:28000,parts:1,moisLoues:12,compta:300,entretien:200,cfe:250,chargesReelles:360,horizon:15,regime:"",avis:null,plan:{done:{}},comptablePrix:450,comptable:{},suivi:{},envoiFreq:"trim",envois:[]},
+  points:{ok:{}},couts:{hist:[]},
   meta:{exemple:true}
 };
 const REAL_DATA = {};
@@ -870,10 +871,9 @@ const POINTS=[
  ["dtf","Vérifier le détecteur de fumée","Avant l'arrivée du locataire",`<p>Un détecteur de fumée normalisé (marquage CE, norme NF EN 14604) est obligatoire dans tout logement loué. C'est au propriétaire de l'installer ; le locataire l'entretient ensuite (le bail le prévoit).</p><p><b>À faire :</b> vérifie qu'il y en a un, idéalement dans la montée d'escalier ou près de la chambre, et teste-le. Sinon, il coûte une vingtaine d'euros en magasin de bricolage.</p>`],
  ["assur","Assurance : passer en PNO à l'arrivée du locataire","Le jour de la signature du bail",`<p>Aujourd'hui tu as une assurance habitation « propriétaire occupant » chez Pacifica (561 € par an) : c'est normal tant que tu occupes la maison.</p><p><b>Le jour où le locataire entre :</b></p><ul><li>appelle Pacifica pour transformer le contrat en <b>propriétaire non occupant (PNO)</b>, souvent moins cher ;</li><li>demande au locataire <b>son attestation d'assurance habitation</b>, à ranger dans le coffre-fort.</li></ul><p><b>Pourquoi :</b> avec un contrat « occupant » alors que la maison est louée, l'assureur peut refuser de payer en cas de dégât des eaux ou d'incendie.</p>`],
 ];
-function pointsCard(){const ok=S.points?.ok||{};const todo=POINTS.filter(p=>!ok[p[0]]),done=POINTS.filter(p=>ok[p[0]]);if(!POINTS.length)return "";
-  return `<section class="card ${todo.length?"gold":""}"><div class="row between"><div><p class="eyebrow">Points à régler</p><h2>${todo.length?todo.length+" point"+(todo.length>1?"s":"")+" à régler":"Tout est réglé ✓"}</h2></div></div>
-  ${todo.length?`<div class="list">${todo.map(p=>`<div class="li" style="padding:10px 0"><div class="grow"><b class="small">${p[1]}</b><p class="tiny muted">${p[2]}</p></div><button class="btn sm ghost" data-act="voirPoint" data-arg="${p[0]}">Voir</button></div>`).join("")}</div>`:""}
-  ${done.length?`<p class="tiny muted">${done.map(p=>"✓ "+p[1].split(" :")[0]+" ("+fdate(ok[p[0]])+")").join(" · ")}</p>`:""}</section>`}
+function pointsCard(){const ok=S.points?.ok||{};const todo=POINTS.filter(p=>!ok[p[0]]);if(!todo.length)return "";
+  return `<section class="card gold"><div class="row between"><div><p class="eyebrow">Points à régler</p><h2>${todo.length} point${todo.length>1?"s":""} à régler</h2></div></div>
+  <div class="list">${todo.map(p=>`<div class="li" style="padding:10px 0"><div class="grow"><b class="small">${p[1]}</b><p class="tiny muted">${p[2]}</p></div><button class="btn sm ghost" data-act="voirPoint" data-arg="${p[0]}">Voir</button></div>`).join("")}</div></section>`}
 function pointSheet(id){const p=POINTS.find(x=>x[0]===id);if(!p)return;const ok=S.points?.ok?.[id];
   openSheet(`<div class="row between"><h2>${p[1]}</h2><button class="btn sm ghost" data-act="closeSheet">Fermer</button></div><p class="eyebrow">${p[2]}</p><div class="small" style="display:flex;flex-direction:column;gap:8px">${p[3]}</div>
   <button class="btn ${ok?"soft":""} block" data-act="togglePoint" data-arg="${id}">${ok?"Réglé le "+fdate(ok)+" · annuler":"C'est réglé ✓"}</button>`)}
