@@ -1252,7 +1252,7 @@ function bienInfos(){
    :kvRows([["PDL électricité",b.pdl?esc(b.pdl):'<span class="neg">à relever</span>'],["Compteur électrique",esc(b.compteurElec||"—")],["Compteur d'eau",b.compteurEau?esc(b.compteurEau):'<span class="neg">à relever</span>'],["Service des eaux",esc(b.serviceEau||"—")],["Internet",esc(b.internet||"—")]])}</section>
   <section class="card"><div class="row between"><h2>Contrats et charges</h2><button class="btn sm soft" data-act="copyCard">Copier</button></div>${kvRows([["Assurance PNO",esc([b.assureurPNO,b.contratPNO].filter(Boolean).join(" · "))],["Taxe foncière",eur(N(b.taxeFonciere))+" / an"],["N° SIRET",esc(S.profil.siret)]])}</section>`;
 }
-const PIECES_NOMS=()=>S.edl.entree.pieces.map(p=>p.nom);
+const PIECES_NOMS=()=>{const L=[...S.edl.entree.pieces.map(p=>p.nom),...(S.inventaire.pieces||[]),...S.inventaire.items.map(x=>x.piece).filter(Boolean)];return [...new Set(L)]};
 function bienInventaire(){
   const it=S.inventaire.items;const n=MOBILIER.filter(([k])=>S.mobilier.ok[k]).length;
   const byRoom=PIECES_NOMS().map(r=>[r,it.filter(x=>x.piece===r)]).filter(([,l])=>l.length);
@@ -1269,8 +1269,8 @@ function bienInventaire(){
 function invSheet(x){
   const i=S.inventaire.items.indexOf(x);const p="inventaire.items."+i;
   return `<div class="row between"><h2>${esc(x.nom||"Nouveau meuble")}</h2><button class="btn sm" data-act="closeSheet">Terminé</button></div>
-  ${photosGrid(x.photos,p+".photos")}<button class="btn soft" data-act="uploadPhotos" data-arg="${p}.photos" ${ASSETS?"":"disabled"}>${x.photos?.length?"Ajouter d'autres photos ("+x.photos.length+")":"Prendre des photos"}</button>
-  <div class="grid2">${f("Nom",p+".nom",{ph:"ex. Canapé 3 places gris"})}${f("Pièce",p+".piece",{type:"select",options:PIECES_NOMS()})}${f("Quantité",p+".qte",{type:"num"})}${f("État",p+".etat",{type:"select",options:ETATS.slice(1)})}${f("Valeur d'achat (€, si tu la connais)",p+".valeur",{type:"num",span:true})}</div>
+  ${photosGrid(x.photos,p+".photos")}<div class="g2"><button class="btn soft" data-act="takePhoto" data-arg="${p}.photos" ${ASSETS?"":"disabled"}>Prendre une photo</button><button class="btn soft" data-act="uploadPhotos" data-arg="${p}.photos" ${ASSETS?"":"disabled"}>Importer des photos</button></div>${x.photos?.length?`<p class="tiny muted">${x.photos.length} photo${x.photos.length>1?"s":""}</p>`:""}
+  <div class="grid2">${f("Nom",p+".nom",{ph:"ex. Canapé 3 places gris"})}<div class="field">${f("Pièce",p+".piece",{type:"select",options:PIECES_NOMS()})}${UI.newPiece?`<div class="row" style="gap:6px;margin-top:6px"><input id="npName" placeholder="ex. Couloir" style="flex:1;min-width:0"><button class="btn sm" data-act="addPiece" data-arg="${x.id}">Ajouter</button></div>`:`<button class="btn sm ghost" style="margin-top:6px" data-act="newPiece">+ Nouvelle pièce</button>`}</div>${f("Quantité",p+".qte",{type:"num"})}${f("État",p+".etat",{type:"select",options:ETATS.slice(1)})}${f("Valeur d'achat (€, si tu la connais)",p+".valeur",{type:"num",span:true})}</div>
   <div class="stack"><b>Facture ou ticket de caisse</b><p class="small muted">Rangé dans ton coffre-fort (Travaux & meubles). Utile pour la garantie et pour tes impôts au réel.</p>
   ${S.coffre.items.filter(d=>d.inv===x.id).map(docRow).join("")}
   <button class="btn soft" data-act="invFacture" data-arg="${x.id}" ${ASSETS?"":"disabled"}>Ajouter la facture</button></div>
@@ -2187,7 +2187,7 @@ function sheetHTML(){const s=UI.sheet;if(!s)return null;const find=(arr)=>arr.fi
   if(s.kind==="depart")return bailActif()?departSheet():null;
   if(s.kind==="ancien")return S.historique?.items?.[s.id]?ancienSheet(s.id):null;return null}
 function showSheet(kind,id){UI.sheet={kind,id};let h=null;try{h=sheetHTML()}catch(e){toast("Oups : "+(e&&e.message||e));console.error(e);return}if(h){openSheet(h);try{const pn=$("#sheetRoot .panel");pn&&pn.scrollIntoView({block:"nearest"})}catch(_){}}initPads()}
-function closeSheet(){const s=UI.sheet;
+function closeSheet(){const s=UI.sheet;UI.newPiece=false;
   if(s&&s.kind==="cand"){const c=S.candidats.items.find(y=>y.id===s.id);if(c&&c._new){S.candidats.items=S.candidats.items.filter(y=>y!==c);touch("candidats")}}
   if(s&&s.kind==="inv"){const x=S.inventaire.items.find(y=>y.id===s.id);if(x&&!x.nom&&!(x.photos||[]).length){S.inventaire.items=S.inventaire.items.filter(y=>y!==x);touch("inventaire")}}
   if(s&&s.kind==="jour"){const j=S.journal.items.find(y=>y.id===s.id);if(j&&!j.titre&&!j.texte&&!(j.photos||[]).length&&!N(j.montant)){S.journal.items=S.journal.items.filter(y=>y!==j);touch("journal")}
@@ -2236,6 +2236,11 @@ document.addEventListener("click",async e=>{
     case "diag":S.diags.ok[arg]=!S.diags.ok[arg];touch("diags");rer();break;
     case "upload":pickFiles({kind:"doc",key:el.dataset.key||"",cat:el.dataset.cat||"autre",ent:el.dataset.ent||""});break;
     case "uploadPhotos":pickFiles({kind:"photos",path:arg});break;
+    case "takePhoto":pickFiles({kind:"photos",path:arg,capture:true});break;
+    case "newPiece":UI.newPiece=true;refreshSheet();setTimeout(()=>{const i=$("#npName");if(i)i.focus()},50);break;
+    case "addPiece":{const nm=($("#npName")?.value||"").trim();if(!nm){toast("Écris le nom de la pièce");break}S.inventaire.pieces=S.inventaire.pieces||[];if(!PIECES_NOMS().includes(nm))S.inventaire.pieces.push(nm);
+      ["entree","sortie"].forEach(w=>{const E=S.edl[w];if(E&&!E.pieces.some(q=>q.nom===nm))E.pieces.push({nom:nm,items:["Sol","Murs","Plafond","Éclairage"].map(el=>({el,etat:"—",com:"",photos:[]}))})});
+      const x=S.inventaire.items.find(y=>y.id===arg);if(x)x.piece=nm;UI.newPiece=false;touch("inventaire");touch("edl");refreshSheet();rer();toast("Pièce ajoutée");break}
     case "delDoc":{const d=S.coffre.items.find(x=>x.id===arg);if(!d)break;if(el.dataset.confirm!=="1"){el.dataset.confirm="1";el.textContent="Sûr ?";setTimeout(()=>{if(el.isConnected){el.dataset.confirm="";el.textContent="✕"}},3000);break}
       S.coffre.items=S.coffre.items.filter(x=>x.id!==arg);touch("coffre");try{if(ASSETS&&d.assetId)await ASSETS.delete(d.assetId)}catch(_){}rer();break}
     case "delPhoto":{const arr=getPath(el.dataset.path)||[];const [rm]=arr.splice(N(arg),1);touch(el.dataset.path.split(".")[0]);try{if(ASSETS&&rm?.id)await ASSETS.delete(rm.id)}catch(_){}rer();refreshSheet();break}
@@ -2397,7 +2402,7 @@ document.addEventListener("click",async e=>{
 function pickFiles(target){
   if(DEMO&&target.kind!=="avis2d"&&target.kind!=="avis"){toast("Pas d'envoi de fichiers en mode démo");return}
   if(!ASSETS&&target.kind!=="avis"&&target.kind!=="avis2d"){toast("L'envoi de fichiers marche dans l'appli publiée");return}
-  UI.uploadTarget=target;const inp=$("#filePick");inp.value="";
+  UI.uploadTarget=target;const inp=$("#filePick");inp.value="";if(target.capture)inp.setAttribute("capture","environment");else inp.removeAttribute("capture");
   inp.accept=(target.kind==="avis"||target.kind==="avis2d")?"image/*,application/pdf":target.kind==="photos"?"image/*,video/*,application/pdf":"image/*,application/pdf";
   inp.multiple=target.kind!=="avis"&&target.kind!=="avis2d";inp.click();
 }
